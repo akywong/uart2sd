@@ -6,7 +6,6 @@
 #include "beep.h"
 #include "ff.h"
 #include "sdio_sdcard.h"
-#include "UartDMA.h"
 
 FATFS fs; 
 FIL fsrc;
@@ -28,7 +27,6 @@ int main(void)
 	Beep_Init();
 	USART1_Init(115200);//串口1初始化
 	USART2_Init(1200);
-	USART_DMA_Rx_Init(Uart2_RxBuf,1024);
 	USART_ITConfig(USART2, USART_IT_IDLE, ENABLE);// 打开串口2空闲中断
 	delay_ms(1000);
 	
@@ -83,25 +81,13 @@ int main(void)
 	
 	delay_ms(1000);
 	
-	//
-	//r=f_write(&fsrc,test_txt,strlen((const char*)test_txt),&count);
-	//
-	f_close(&fsrc);
-	if(FR_OK != r){
-		printf("关闭文件失败 !\r\n");
-		goto Start;
-	}
-	
-	delay_ms(1000);
-	
 	while(1)
 	{
 		
 		if(Uart2_RxOK!=0){
 			__disable_irq();
-			USART_SendString(USART1,"\r\n串口1接收到1帧数据: ");
-			USART_SendBuf(USART1,Uart2_RxBuf,Uart2_RxCnt);
-			USART_SendString(USART1,"\r\n");
+			USART_SendString(USART1,"串口1接收到1帧数据: \r\n");
+			USART_SendString(USART1,Uart2_RxBuf);
 			
 			r=f_write(&fsrc,Uart2_RxBuf,Uart2_RxCnt,&count);
 			if(FR_OK != r) {
@@ -113,7 +99,7 @@ int main(void)
 			memset(Uart2_RxBuf,0,Uart2_RxCnt);
 			
 			
-			USART_DMA_Rx_Init(Uart2_RxBuf,1024);//注意,到这里一次数据接收并且处理就完成了,重新开始下一次接收
+			//USART_DMA_Rx_Init(Uart2_RxBuf,1024);//注意,到这里一次数据接收并且处理就完成了,重新开始下一次接收
 			
 			
 			Uart2_RxOK=0;
@@ -124,25 +110,25 @@ int main(void)
 		
 		delay_ms(1);
 	}
+	f_close(&fsrc);
+	if(FR_OK != r){
+		printf("关闭文件失败 !\r\n");
+		goto Start;
+	}
 }
 //串口1中断函数
 void USART2_IRQHandler(void)
 {
 	uint8_t Clear=Clear;//这种定义方法，用来消除编译器的"没有用到"提醒
 	
-	
-	//DMA会自动将数据放入缓存,因此这里不需要CPU处理
-////	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET){ //如果接收到1个字节
-////		if(Uart1_RxCnt<1024){
-////			Uart1_RxBuf[Uart1_RxCnt++] = USART1->DR;// 把接收到的字节保存，数组地址加1
-////		}
-////	}
-	
-	
-	if(USART_GetITStatus(USART2, USART_IT_IDLE) != RESET){// 如果接收到1帧数据
+	//
+	if(USART_GetITStatus(USART2, USART_IT_RXNE) != RESET){ //如果接收到1个字节
+		if(Uart2_RxCnt<1024){
+			Uart2_RxBuf[Uart2_RxCnt++] = USART2->DR;// 把接收到的字节保存，数组地址加1
+		}
+	}else if(USART_GetITStatus(USART2, USART_IT_IDLE) != RESET){// 如果接收到1帧数据
 		Clear=USART2->SR;// 读SR寄存器
 		Clear=USART2->DR;// 读DR寄存器(先读SR再读DR，就是为了清除IDLE中断)
-		Uart2_RxCnt=DMA_GetCurrDataCounter(DMA1_Channel5);//获取接收到的长度
 		Uart2_RxOK=1;// 标记接收到了1帧数据
 	}
 }
