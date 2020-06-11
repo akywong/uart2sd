@@ -12,6 +12,8 @@ FIL fsrc;
 int frame=0;
 
 const char f_path[]={"test.txt"};
+unsigned char command_1[8]={0x2F,0x64,0x61,0x74,0x3D,0x31,0x0D,0x0A};//"/dat=1"
+unsigned char command_2[6]={0x2F,0x73,0x61,0x76,0x0D,0x0A};
 
 u8  Uart2_RxBuf[1024]={0};//串口接收缓存
 u32 Uart2_RxCnt=0;//接收计数
@@ -80,6 +82,10 @@ int main(void)
 	printf("\r\n 创建文件成功 !\r\n");
 	
 	delay_ms(1000);
+	
+	USART_SendBuf(USART2,command_1,8);
+	delay_ms(10);
+	USART_SendBuf(USART2,command_2,6);
 	
 	while(1)
 	{
