@@ -29,6 +29,7 @@ int main(void)
 	Beep_Init();
 	USART1_Init(115200);//串口1初始化
 	USART2_Init(1200);
+	USART3_Init(9600);
 	USART_ITConfig(USART2, USART_IT_IDLE, ENABLE);// 打开串口2空闲中断
 	delay_ms(1000);
 	
@@ -92,8 +93,8 @@ int main(void)
 		
 		if(Uart2_RxOK!=0){
 			__disable_irq();
-			USART_SendString(USART1,"串口1接收到1帧数据: \r\n");
-			USART_SendString(USART1,Uart2_RxBuf);
+			//USART_SendString(USART1,"串口1接收到1帧数据: \r\n");
+			USART_SendString(USART3,Uart2_RxBuf);
 			
 			r=f_write(&fsrc,Uart2_RxBuf,Uart2_RxCnt,&count);
 			if(FR_OK != r) {
